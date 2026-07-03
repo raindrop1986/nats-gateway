@@ -54,6 +54,11 @@ func DiagnoseMQTTStream(ctx context.Context, cfg Config, latest int) (*Diagnosti
 	if err := cfg.validateNATS(); err != nil {
 		return nil, err
 	}
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, cfg.OperationTimeout*3)
+		defer cancel()
+	}
 	if latest <= 0 {
 		latest = 5
 	}
@@ -84,7 +89,7 @@ func DiagnoseMQTTStream(ctx context.Context, cfg Config, latest int) (*Diagnosti
 		},
 	}
 
-	for ci := range js.ConsumersInfo(cfg.MQTTStream, natsgo.Context(ctx), natsgo.MaxWait(cfg.OperationTimeout)) {
+	for ci := range js.Consumers(cfg.MQTTStream, natsgo.Context(ctx), natsgo.MaxWait(cfg.OperationTimeout)) {
 		out.Consumers = append(out.Consumers, ConsumerSnapshot{
 			Name:            ci.Name,
 			Durable:         ci.Config.Durable,

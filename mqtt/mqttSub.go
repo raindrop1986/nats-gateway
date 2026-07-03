@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/raindrop1986/nats-gateway/gateway"
+	gateway "github.com/raindrop1986/nats-gateway"
 	"log"
 	"os"
 	"os/signal"

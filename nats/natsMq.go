@@ -5,11 +5,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/raindrop1986/nats-gateway/gateway"
+	gateway "github.com/raindrop1986/nats-gateway"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 const (
@@ -73,7 +74,10 @@ func natsPublishCommand() {
 }
 
 func natsDiagnose() {
-	diag, err := gateway.DiagnoseMQTTStream(context.Background(), sampleConfig(), 5)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	diag, err := gateway.DiagnoseMQTTStream(ctx, sampleConfig(), 5)
 	if err != nil {
 		log.Fatalf("nats diagnose failed: %v", err)
 	}

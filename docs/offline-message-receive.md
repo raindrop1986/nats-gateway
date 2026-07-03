@@ -193,11 +193,11 @@ NATS 官方文档说明：普通 NATS 消息投递到 MQTT 订阅时会按 QoS0 
 现在 `main.go` 支持通过参数选择模式：
 
 ```text
-go run . mqtt-sub
-go run . mqtt-pub
-go run . nats-sub
-go run . nats-pub
-go run . nats-diag
+go run ./cmd/nats-gateway mqtt-sub
+go run ./cmd/nats-gateway mqtt-pub
+go run ./cmd/nats-gateway nats-sub
+go run ./cmd/nats-gateway nats-pub
+go run ./cmd/nats-gateway nats-diag
 ```
 
 建议按下面顺序排查下行离线：
@@ -205,7 +205,7 @@ go run . nats-diag
 1. 启动设备订阅，确认会话创建成功。
 
    ```text
-   go run . mqtt-sub
+   go run ./cmd/nats-gateway mqtt-sub
    ```
 
    日志里要看到：
@@ -219,7 +219,7 @@ go run . nats-diag
 3. 运行诊断：
 
    ```text
-   go run . nats-diag
+   go run ./cmd/nats-gateway nats-diag
    ```
 
    期望至少看到 `$MQTT_msgs` 上存在 MQTT 会话 consumer。若输出 `no consumer found`，说明 MQTT QoS1 持久订阅并没有在服务端建起来，通常是 ClientID、CleanSession、权限或服务端 JetStream 账号问题。
@@ -227,13 +227,13 @@ go run . nats-diag
 4. 平台下发：
 
    ```text
-   go run . nats-pub
+   go run ./cmd/nats-gateway nats-pub
    ```
 
 5. 再运行诊断：
 
    ```text
-   go run . nats-diag
+   go run ./cmd/nats-gateway nats-diag
    ```
 
    期望最近消息类似：
@@ -248,12 +248,12 @@ go run . nats-diag
 6. 重新启动设备：
 
    ```text
-   go run . mqtt-sub
+   go run ./cmd/nats-gateway mqtt-sub
    ```
 
    如果前面 consumer 存在、消息也进入 `$MQTT_msgs`，但这里仍收不到，就重点看 NATS Server 日志里是否有 MQTT consumer 投递、权限拒绝或 session collision。
 
-排查下行离线时，一般不需要同时运行 `go run . nats-sub`。当前代码里的 `nats-sub` 只过滤 `$MQTT.msgs.WT1_receive.>`，不会消费 `WT1_service_parameter` 下行消息；先关闭它可以让日志更干净，避免把上行链路和下行链路混在一起看。
+排查下行离线时，一般不需要同时运行 `go run ./cmd/nats-gateway nats-sub`。当前代码里的 `nats-sub` 只过滤 `$MQTT.msgs.WT1_receive.>`，不会消费 `WT1_service_parameter` 下行消息；先关闭它可以让日志更干净，避免把上行链路和下行链路混在一起看。
 
 ## 配置注意点
 

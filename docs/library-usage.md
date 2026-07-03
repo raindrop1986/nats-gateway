@@ -9,9 +9,9 @@ import "github.com/raindrop1986/nats-gateway"
 如果是在另一个本地项目中调试，可以在对方项目的 `go.mod` 中添加本地替换：
 
 ```text
-require nast-gateway v0.0.0
+require github.com/raindrop1986/nats-gateway v0.0.0
 
-replace nast-gateway => E:\golang_study\nats
+replace github.com/raindrop1986/nats-gateway => E:\golang_study\nats
 ```
 
 ## 四个核心能力
@@ -129,11 +129,11 @@ Nmqtt-Mapped: WT1_service_parameter.WT260605135206
 项目根目录仍保留了可运行示例：
 
 ```text
-go run . mqtt-pub
-go run . mqtt-sub
-go run . nats-sub
-go run . nats-pub
-go run . nats-diag
+go run ./cmd/nats-gateway mqtt-pub
+go run ./cmd/nats-gateway mqtt-sub
+go run ./cmd/nats-gateway nats-sub
+go run ./cmd/nats-gateway nats-pub
+go run ./cmd/nats-gateway nats-diag
 ```
 
 这些示例入口现在只是 `gateway` 包的薄包装，方便本项目继续验证。
