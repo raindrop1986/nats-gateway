@@ -1,4 +1,4 @@
-module nats-gateway
+module github.com/raindrop1986/nats-gateway
 
 go 1.26.1
 
