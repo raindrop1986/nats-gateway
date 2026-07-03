@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"nast-gateway/mqtt"
-	"nast-gateway/nats"
+	"github.com/raindrop1986/nats-gateway/mqtt"
+	"github.com/raindrop1986/nats-gateway/nats"
 	"os"
 )
 
