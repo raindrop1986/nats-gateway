@@ -3,7 +3,7 @@
 核心库在 `gateway` 包中，其他项目可以直接引用：
 
 ```go
-import "nast-gateway/gateway"
+import "github.com/raindrop1986/nats-gateway"
 ```
 
 如果是在另一个本地项目中调试，可以在对方项目的 `go.mod` 中添加本地替换：

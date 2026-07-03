@@ -1,4 +1,4 @@
-module nast-gateway
+module nats-gateway
 
 go 1.26.1
 
