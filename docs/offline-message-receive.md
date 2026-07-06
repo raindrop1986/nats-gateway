@@ -91,6 +91,8 @@ $MQTT.msgs.WT1_service_parameter/WT260605135206
 
 这条链路用于模拟“终端上报数据，平台后端接收”。如果后端程序离线，JetStream durable consumer 会保存消费进度，后端重启后继续从上次 ack 后的位置消费。
 
+如果设备上报使用 QoS0，这类消息不进入 `$MQTT_msgs` 持久化流，不能用这条 durable 链路接收。平台只需要在线实时接收 QoS0 时，应使用 `gateway.PlatformReceiveLiveUploads`，它订阅普通 NATS subject `WT1_receive.>`。
+
 ## 下行链路：平台通过 NATS 下发，离线 MQTT 设备重连接收
 
 1. 设备先上线订阅平台指令：
@@ -195,7 +197,9 @@ NATS 官方文档说明：普通 NATS 消息投递到 MQTT 订阅时会按 QoS0 
 ```text
 go run ./cmd/nats-gateway mqtt-sub
 go run ./cmd/nats-gateway mqtt-pub
+go run ./cmd/nats-gateway mqtt-pub-qos0
 go run ./cmd/nats-gateway nats-sub
+go run ./cmd/nats-gateway nats-live-sub
 go run ./cmd/nats-gateway nats-pub
 go run ./cmd/nats-gateway nats-diag
 ```

@@ -43,6 +43,10 @@ func PlatformReceiveUploads(ctx context.Context, cfg Config, handler func(NATSUp
 	return core.PlatformReceiveUploads(ctx, cfg, handler)
 }
 
+func PlatformReceiveLiveUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
+	return core.PlatformReceiveLiveUploads(ctx, cfg, handler)
+}
+
 func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
 	return core.PlatformSendCommand(ctx, cfg, payload)
 }

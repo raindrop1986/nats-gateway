@@ -89,7 +89,7 @@ func DiagnoseMQTTStream(ctx context.Context, cfg Config, latest int) (*Diagnosti
 		},
 	}
 
-	for ci := range js.Consumers(cfg.MQTTStream, natsgo.Context(ctx), natsgo.MaxWait(cfg.OperationTimeout)) {
+	for ci := range js.Consumers(cfg.MQTTStream, natsgo.Context(ctx)) {
 		out.Consumers = append(out.Consumers, ConsumerSnapshot{
 			Name:            ci.Name,
 			Durable:         ci.Config.Durable,

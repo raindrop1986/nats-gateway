@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 )
@@ -92,6 +93,58 @@ func PlatformReceiveUploads(ctx context.Context, cfg Config, handler func(NATSUp
 	}
 }
 
+// PlatformReceiveLiveUploads consumes online terminal upload messages from the
+// normal NATS subject mapped by the MQTT gateway. It is intended for QoS0
+// uploads and does not provide durable/offline replay.
+func PlatformReceiveLiveUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
+	cfg = cfg.withDefaults()
+	if err := cfg.validateNATS(); err != nil {
+		return err
+	}
+	if handler == nil {
+		return fmt.Errorf("nats live upload handler is required")
+	}
+
+	nc, err := connectNATSConn(cfg, "live-upload-sub")
+	if err != nil {
+		return err
+	}
+	defer nc.Close()
+
+	errCh := make(chan error, 1)
+	filterSubject := mqttTopicFilterToNATSSubject(cfg.BackendUploadFilter())
+	sub, err := nc.Subscribe(filterSubject, func(msg *natsgo.Msg) {
+		upload := NATSUpload{
+			Subject: msg.Subject,
+			Topic:   natsSubjectToMQTTTopic(msg.Subject),
+			Payload: append([]byte(nil), msg.Data...),
+			QoS:     "0",
+			Header:  msg.Header,
+		}
+		if err := handler(upload); err != nil {
+			select {
+			case errCh <- err:
+			default:
+			}
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("subscribe live upload subject: %w", err)
+	}
+	defer sub.Unsubscribe()
+
+	if err := nc.FlushTimeout(cfg.OperationTimeout); err != nil {
+		return fmt.Errorf("flush live upload subscription: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errCh:
+		return err
+	}
+}
+
 // PlatformSendCommand publishes a platform command into the MQTT gateway stream
 // so a persistent MQTT session can receive it after reconnecting.
 func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
@@ -101,6 +154,9 @@ func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATS
 	}
 	if cfg.DeviceID == "" {
 		return nil, fmt.Errorf("device id is required")
+	}
+	if err := cfg.validateQoS(); err != nil {
+		return nil, err
 	}
 
 	nc, js, err := connectNATS(cfg, "command-pub")
@@ -125,7 +181,10 @@ func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATS
 	msg.Header.Set(mqttMappedHeader, natsSubject)
 	msg.Data = payload
 
-	ack, err := js.PublishMsg(msg, natsgo.AckWait(cfg.OperationTimeout), natsgo.Context(ctx))
+	ctx, cancel := withOperationTimeout(ctx, cfg.OperationTimeout)
+	defer cancel()
+
+	ack, err := js.PublishMsg(msg, natsgo.Context(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("publish mqtt command stream: %w", err)
 	}
@@ -140,6 +199,20 @@ func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATS
 }
 
 func connectNATS(cfg Config, name string) (*natsgo.Conn, natsgo.JetStreamContext, error) {
+	nc, err := connectNATSConn(cfg, name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	js, err := nc.JetStream()
+	if err != nil {
+		nc.Close()
+		return nil, nil, fmt.Errorf("init jetstream: %w", err)
+	}
+	return nc, js, nil
+}
+
+func connectNATSConn(cfg Config, name string) (*natsgo.Conn, error) {
 	opts := []natsgo.Option{
 		natsgo.Name(cfg.NATSNamePrefix + "-" + name),
 		natsgo.Timeout(cfg.ConnectTimeout),
@@ -150,15 +223,9 @@ func connectNATS(cfg Config, name string) (*natsgo.Conn, natsgo.JetStreamContext
 
 	nc, err := natsgo.Connect(cfg.NATSURL, opts...)
 	if err != nil {
-		return nil, nil, fmt.Errorf("connect nats: %w", err)
+		return nil, fmt.Errorf("connect nats: %w", err)
 	}
-
-	js, err := nc.JetStream()
-	if err != nil {
-		nc.Close()
-		return nil, nil, fmt.Errorf("init jetstream: %w", err)
-	}
-	return nc, js, nil
+	return nc, nil
 }
 
 func ensureMQTTMsgStream(js natsgo.JetStreamContext, cfg Config) error {
@@ -198,4 +265,14 @@ func mqttTopicFilterToNATSSubject(filter string) string {
 	subject = strings.ReplaceAll(subject, "#", ">")
 	subject = strings.ReplaceAll(subject, "+", "*")
 	return subject
+}
+
+func withOperationTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		return ctx, func() {}
+	}
+	if _, ok := ctx.Deadline(); ok {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, timeout)
 }

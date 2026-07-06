@@ -96,9 +96,6 @@ func (c Config) withDefaults() Config {
 	if c.UploadClientID == "" && c.DeviceID != "" {
 		c.UploadClientID = c.DeviceID + "_upload"
 	}
-	if c.MQTTQoS == 0 {
-		c.MQTTQoS = 1
-	}
 	if c.MQTTKeepAlive == 0 {
 		c.MQTTKeepAlive = 300 * time.Second
 	}
@@ -149,12 +146,22 @@ func (c Config) validateMQTT() error {
 	if c.DeviceID == "" {
 		return fmt.Errorf("device id is required")
 	}
+	if err := c.validateQoS(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (c Config) validateNATS() error {
 	if c.NATSURL == "" {
 		return fmt.Errorf("nats url is required")
+	}
+	return nil
+}
+
+func (c Config) validateQoS() error {
+	if c.MQTTQoS > 2 {
+		return fmt.Errorf("mqtt qos must be 0, 1 or 2")
 	}
 	return nil
 }

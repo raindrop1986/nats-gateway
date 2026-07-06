@@ -20,7 +20,8 @@ replace github.com/raindrop1986/nats-gateway => E:\golang_study\nats
 | --- | --- | --- |
 | 终端 MQTT 上行 | `gateway.DeviceUpload` | 设备上报 `WT1_receive/<设备号>`。 |
 | 终端 MQTT 下行 | `gateway.DeviceReceiveCommands` | 设备持久订阅 `WT1_service_parameter/<设备号>`。 |
-| 平台 NATS 接上行 | `gateway.PlatformReceiveUploads` | 平台接收设备上报消息。 |
+| 平台 NATS 接 QoS1/QoS2 上行 | `gateway.PlatformReceiveUploads` | 平台接收可持久化的设备上报消息。 |
+| 平台 NATS 接 QoS0 在线上行 | `gateway.PlatformReceiveLiveUploads` | 平台接收在线实时设备上报消息，不做离线补收。 |
 | 平台 NATS 下发 | `gateway.PlatformSendCommand` | 平台下发指令，使离线 MQTT 设备重连后收到。 |
 
 另有诊断函数：
@@ -87,6 +88,8 @@ err := gateway.DeviceReceiveCommands(ctx, cfg, func(msg gateway.MQTTCommand) err
 
 ## 平台 NATS 接收上行
 
+### QoS1/QoS2 可持久化接收
+
 ```go
 err := gateway.PlatformReceiveUploads(ctx, cfg, func(msg gateway.NATSUpload) error {
     fmt.Printf("topic=%s payload=%x\n", msg.Topic, msg.Payload)
@@ -99,6 +102,25 @@ err := gateway.PlatformReceiveUploads(ctx, cfg, func(msg gateway.NATSUpload) err
 ```text
 backend_mqtt_consumer
 ```
+
+### QoS0 在线实时接收
+
+QoS0 不进入 `$MQTT_msgs` 持久化流，不能离线补收。要接收 QoS0 上报，请使用普通 NATS 在线订阅：
+
+```go
+err := gateway.PlatformReceiveLiveUploads(ctx, cfg, func(msg gateway.NATSUpload) error {
+    fmt.Printf("topic=%s payload=%x\n", msg.Topic, msg.Payload)
+    return nil
+})
+```
+
+它订阅的是普通 NATS subject，例如：
+
+```text
+WT1_receive.>
+```
+
+这类消息只有订阅端在线时才能收到。
 
 ## 平台 NATS 下发指令
 
@@ -130,8 +152,10 @@ Nmqtt-Mapped: WT1_service_parameter.WT260605135206
 
 ```text
 go run ./cmd/nats-gateway mqtt-pub
+go run ./cmd/nats-gateway mqtt-pub-qos0
 go run ./cmd/nats-gateway mqtt-sub
 go run ./cmd/nats-gateway nats-sub
+go run ./cmd/nats-gateway nats-live-sub
 go run ./cmd/nats-gateway nats-pub
 go run ./cmd/nats-gateway nats-diag
 ```
