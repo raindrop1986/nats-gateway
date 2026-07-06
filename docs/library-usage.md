@@ -18,10 +18,10 @@ replace github.com/raindrop1986/nats-gateway => E:\golang_study\nats
 
 | 生产角色 | 函数 | 说明 |
 | --- | --- | --- |
-| 终端 MQTT 上行 | `gateway.MQTTPublishUpload` | 终端通过 MQTT 发布 `WT1_receive/<设备号>`。 |
-| 终端 MQTT 下行 | `gateway.MQTTSubscribeCommands` | 终端通过固定 ClientID + QoS1 持久订阅 `WT1_service_parameter/<设备号>`。 |
-| 平台 NATS 接上行 | `gateway.NATSSubscribeUploads` | 平台通过 NATS durable consumer 接收 MQTT 网关中的上行消息。 |
-| 平台 NATS 下发 | `gateway.NATSPublishCommand` | 平台通过 NATS 写入 MQTT 网关持久化 Stream，使离线 MQTT 终端重连后收到指令。 |
+| 终端 MQTT 上行 | `gateway.DeviceUpload` | 设备上报 `WT1_receive/<设备号>`。 |
+| 终端 MQTT 下行 | `gateway.DeviceReceiveCommands` | 设备持久订阅 `WT1_service_parameter/<设备号>`。 |
+| 平台 NATS 接上行 | `gateway.PlatformReceiveUploads` | 平台接收设备上报消息。 |
+| 平台 NATS 下发 | `gateway.PlatformSendCommand` | 平台下发指令，使离线 MQTT 设备重连后收到。 |
 
 另有诊断函数：
 
@@ -63,7 +63,7 @@ cfg.UploadFilter = "WT1_receive/#"
 ## 终端 MQTT 上行
 
 ```go
-result, err := gateway.MQTTPublishUpload(ctx, cfg, payload)
+result, err := gateway.DeviceUpload(ctx, cfg, payload)
 if err != nil {
     return err
 }
@@ -73,7 +73,7 @@ fmt.Println(result.Topic, result.Bytes)
 ## 终端 MQTT 下行
 
 ```go
-err := gateway.MQTTSubscribeCommands(ctx, cfg, func(msg gateway.MQTTCommand) error {
+err := gateway.DeviceReceiveCommands(ctx, cfg, func(msg gateway.MQTTCommand) error {
     fmt.Printf("topic=%s payload=%x\n", msg.Topic, msg.Payload)
     return nil
 })
@@ -88,7 +88,7 @@ err := gateway.MQTTSubscribeCommands(ctx, cfg, func(msg gateway.MQTTCommand) err
 ## 平台 NATS 接收上行
 
 ```go
-err := gateway.NATSSubscribeUploads(ctx, cfg, func(msg gateway.NATSUpload) error {
+err := gateway.PlatformReceiveUploads(ctx, cfg, func(msg gateway.NATSUpload) error {
     fmt.Printf("topic=%s payload=%x\n", msg.Topic, msg.Payload)
     return nil
 })
@@ -103,7 +103,7 @@ backend_mqtt_consumer
 ## 平台 NATS 下发指令
 
 ```go
-result, err := gateway.NATSPublishCommand(ctx, cfg, payload)
+result, err := gateway.PlatformSendCommand(ctx, cfg, payload)
 if err != nil {
     return err
 }

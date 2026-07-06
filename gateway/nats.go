@@ -28,10 +28,10 @@ type NATSPublishResult struct {
 	Bytes    int
 }
 
-// NATSSubscribeUploads consumes terminal upload messages from the MQTT gateway
+// PlatformReceiveUploads consumes terminal upload messages from the MQTT gateway
 // stream through a durable JetStream consumer. It blocks until ctx is cancelled
 // or the handler returns an error.
-func NATSSubscribeUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
+func PlatformReceiveUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
 	cfg = cfg.withDefaults()
 	if err := cfg.validateNATS(); err != nil {
 		return err
@@ -92,9 +92,9 @@ func NATSSubscribeUploads(ctx context.Context, cfg Config, handler func(NATSUplo
 	}
 }
 
-// NATSPublishCommand publishes a platform command into the MQTT gateway stream
+// PlatformSendCommand publishes a platform command into the MQTT gateway stream
 // so a persistent MQTT session can receive it after reconnecting.
-func NATSPublishCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
+func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
 	cfg = cfg.withDefaults()
 	if err := cfg.validateNATS(); err != nil {
 		return nil, err

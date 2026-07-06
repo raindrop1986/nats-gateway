@@ -31,20 +31,20 @@ func DefaultConfig(deviceID string) Config {
 	return core.DefaultConfig(deviceID)
 }
 
-func MQTTPublishUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
-	return core.MQTTPublishUpload(ctx, cfg, payload)
+func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
+	return core.DeviceUpload(ctx, cfg, payload)
 }
 
-func MQTTSubscribeCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
-	return core.MQTTSubscribeCommands(ctx, cfg, handler)
+func DeviceReceiveCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
+	return core.DeviceReceiveCommands(ctx, cfg, handler)
 }
 
-func NATSSubscribeUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
-	return core.NATSSubscribeUploads(ctx, cfg, handler)
+func PlatformReceiveUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
+	return core.PlatformReceiveUploads(ctx, cfg, handler)
 }
 
-func NATSPublishCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
-	return core.NATSPublishCommand(ctx, cfg, payload)
+func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
+	return core.PlatformSendCommand(ctx, cfg, payload)
 }
 
 func DiagnoseMQTTStream(ctx context.Context, cfg Config, latest int) (*Diagnostic, error) {

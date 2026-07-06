@@ -25,8 +25,8 @@ type MQTTPublishResult struct {
 	Bytes    int
 }
 
-// MQTTPublishUpload publishes terminal upload data through MQTT.
-func MQTTPublishUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
+// DeviceUpload publishes terminal upload data through MQTT.
+func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
 	cfg = cfg.withDefaults()
 	if err := cfg.validateMQTT(); err != nil {
 		return nil, err
@@ -54,10 +54,10 @@ func MQTTPublishUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPu
 	}, nil
 }
 
-// MQTTSubscribeCommands subscribes terminal command messages through a
+// DeviceReceiveCommands subscribes terminal command messages through a
 // persistent MQTT session. It blocks until ctx is cancelled or the handler
 // returns an error.
-func MQTTSubscribeCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
+func DeviceReceiveCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
 	cfg = cfg.withDefaults()
 	if err := cfg.validateMQTT(); err != nil {
 		return err
