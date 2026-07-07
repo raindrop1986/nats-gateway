@@ -25,9 +25,12 @@ type MQTTPublishResult struct {
 	Bytes    int
 }
 
-// DeviceUpload publishes terminal upload data through MQTT.
-func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
-	cfg = cfg.withDefaults()
+// DeviceUpload publishes terminal upload data through MQTT for deviceID.
+func DeviceUpload(ctx context.Context, cfg Config, deviceID string, payload []byte) (*MQTTPublishResult, error) {
+	cfg, deviceID, err := cfg.withDevice(deviceID)
+	if err != nil {
+		return nil, err
+	}
 	if err := cfg.validateMQTT(); err != nil {
 		return nil, err
 	}
@@ -40,7 +43,7 @@ func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublish
 	}
 	defer client.Disconnect(250)
 
-	topic := cfg.UploadTopic()
+	topic := cfg.UploadTopic(deviceID)
 	token := client.Publish(topic, cfg.MQTTQoS, false, payload)
 	if err := waitMQTTToken(ctx, token, cfg.OperationTimeout, "mqtt publish"); err != nil {
 		return nil, err
@@ -57,8 +60,11 @@ func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublish
 // DeviceReceiveCommands subscribes terminal command messages through a
 // persistent MQTT session. It blocks until ctx is cancelled or the handler
 // returns an error.
-func DeviceReceiveCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
-	cfg = cfg.withDefaults()
+func DeviceReceiveCommands(ctx context.Context, cfg Config, deviceID string, handler func(MQTTCommand) error) error {
+	cfg, deviceID, err := cfg.withDevice(deviceID)
+	if err != nil {
+		return err
+	}
 	if err := cfg.validateMQTT(); err != nil {
 		return err
 	}
@@ -77,7 +83,7 @@ func DeviceReceiveCommands(ctx context.Context, cfg Config, handler func(MQTTCom
 	defer client.Disconnect(250)
 
 	errCh := make(chan error, 1)
-	topic := cfg.CommandTopic()
+	topic := cfg.CommandTopic(deviceID)
 	token := client.Subscribe(topic, cfg.MQTTQoS, func(_ mqtt.Client, msg mqtt.Message) {
 		cmd := MQTTCommand{
 			ClientID: cfg.CommandClientID,

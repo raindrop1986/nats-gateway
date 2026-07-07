@@ -29,14 +29,12 @@ type Config struct {
 	MQTTUser     string
 	MQTTPassword string
 
-	DeviceID string
-
 	// UploadTopicPrefix is the MQTT topic prefix for terminal uploads.
-	// The default upload topic is "<UploadTopicPrefix>/<DeviceID>".
+	// The default upload topic is "<UploadTopicPrefix>/<deviceID>".
 	UploadTopicPrefix string
 
 	// CommandTopicPrefix is the MQTT topic prefix for platform commands.
-	// The default command topic is "<CommandTopicPrefix>/<DeviceID>".
+	// The default command topic is "<CommandTopicPrefix>/<deviceID>".
 	CommandTopicPrefix string
 
 	// UploadFilter is used by the NATS backend to receive terminal uploads.
@@ -44,11 +42,12 @@ type Config struct {
 	UploadFilter string
 
 	// CommandClientID identifies the MQTT persistent session used to receive
-	// platform commands. When empty, DeviceID is used.
+	// platform commands. When empty, the deviceID passed to
+	// DeviceReceiveCommands is used.
 	CommandClientID string
 
 	// UploadClientID identifies the MQTT upload simulator/client. When empty,
-	// "<DeviceID>_upload" is used.
+	// "<deviceID>_upload" is used.
 	UploadClientID string
 
 	MQTTQoS          byte
@@ -62,11 +61,10 @@ type Config struct {
 	NATSNamePrefix    string
 }
 
-// DefaultConfig returns topic and timeout defaults for a device. Connection
-// addresses and credentials should be filled by the caller.
-func DefaultConfig(deviceID string) Config {
+// DefaultConfig returns topic and timeout defaults. Connection addresses,
+// credentials and operation device IDs should be filled by the caller.
+func DefaultConfig() Config {
 	return Config{
-		DeviceID:           deviceID,
 		UploadTopicPrefix:  DefaultUploadTopicPrefix,
 		CommandTopicPrefix: DefaultCommandTopicPrefix,
 		MQTTQoS:            1,
@@ -89,12 +87,6 @@ func (c Config) withDefaults() Config {
 	}
 	if c.UploadFilter == "" {
 		c.UploadFilter = joinTopic(c.UploadTopicPrefix, "#")
-	}
-	if c.CommandClientID == "" {
-		c.CommandClientID = c.DeviceID
-	}
-	if c.UploadClientID == "" && c.DeviceID != "" {
-		c.UploadClientID = c.DeviceID + "_upload"
 	}
 	if c.MQTTKeepAlive == 0 {
 		c.MQTTKeepAlive = 300 * time.Second
@@ -120,16 +112,31 @@ func (c Config) withDefaults() Config {
 	return c
 }
 
-// UploadTopic returns the terminal upload MQTT topic for this config.
-func (c Config) UploadTopic() string {
+func (c Config) withDevice(deviceID string) (Config, string, error) {
 	c = c.withDefaults()
-	return joinTopic(c.UploadTopicPrefix, c.DeviceID)
+	deviceID = strings.TrimSpace(deviceID)
+	if deviceID == "" {
+		return c, "", fmt.Errorf("device id is required")
+	}
+	if c.CommandClientID == "" {
+		c.CommandClientID = deviceID
+	}
+	if c.UploadClientID == "" {
+		c.UploadClientID = deviceID + "_upload"
+	}
+	return c, deviceID, nil
 }
 
-// CommandTopic returns the platform command MQTT topic for this config.
-func (c Config) CommandTopic() string {
+// UploadTopic returns the terminal upload MQTT topic for deviceID.
+func (c Config) UploadTopic(deviceID string) string {
 	c = c.withDefaults()
-	return joinTopic(c.CommandTopicPrefix, c.DeviceID)
+	return joinTopic(c.UploadTopicPrefix, deviceID)
+}
+
+// CommandTopic returns the platform command MQTT topic for deviceID.
+func (c Config) CommandTopic(deviceID string) string {
+	c = c.withDefaults()
+	return joinTopic(c.CommandTopicPrefix, deviceID)
 }
 
 // BackendUploadFilter returns the MQTT topic filter used by the NATS backend
@@ -142,9 +149,6 @@ func (c Config) BackendUploadFilter() string {
 func (c Config) validateMQTT() error {
 	if c.MQTTBroker == "" {
 		return fmt.Errorf("mqtt broker is required")
-	}
-	if c.DeviceID == "" {
-		return fmt.Errorf("device id is required")
 	}
 	if err := c.validateQoS(); err != nil {
 		return err

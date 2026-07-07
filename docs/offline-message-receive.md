@@ -104,8 +104,10 @@ $MQTT.msgs.WT1_service_parameter/WT260605135206
 2. MQTT 订阅端使用固定 ClientID：
 
    ```go
-   commandSubClientID = "WT260605135206"
+   gateway.DeviceReceiveCommands(ctx, cfg, "WT260605135206", handler)
    ```
+
+   库内部默认会把 MQTT ClientID 设为传入的设备号 `WT260605135206`。
 
 3. MQTT 订阅端订阅：
 
@@ -154,10 +156,10 @@ SetCleanSession(false)
 - `SetCleanSession(false)`：断开后服务端保留订阅关系和未投递的 QoS1/QoS2 消息。
 - 如果换 ClientID，服务端会认为这是另一个设备会话，之前积压的离线消息不会投递给它。
 
-因为当前模拟器把“设备上行发布”和“设备下行订阅”拆成两个 Go 入口，`mqtt.MqttPub()` 使用了单独的测试 ClientID：
+因为当前模拟器把“设备上行发布”和“设备下行订阅”拆成两个 Go 入口，`mqtt.MqttPub()` 会使用单独的测试 ClientID：
 
 ```go
-uploadPubClientID = "WT260605135206_upload_simulator"
+uploadPubClientID = "WT260605135206_upload"
 ```
 
 这样可以避免两个模拟程序同时在线时使用相同 ClientID 互相踢下线。真实设备通常会用同一条 MQTT 连接同时 publish 上行数据并 subscribe 下行指令。
@@ -215,7 +217,7 @@ go run ./cmd/nats-gateway nats-diag
    日志里要看到：
 
    ```text
-   mqtt subscribed client_id=WT260605135206 topic=WT1_service_parameter/WT260605135206 qos=1
+   mqtt subscribing client_id=WT260605135206 topic=WT1_service_parameter/WT260605135206 qos=1
    ```
 
 2. 停掉 `mqtt-sub`，模拟设备离线。

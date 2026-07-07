@@ -27,16 +27,16 @@ type StreamSnapshot = core.StreamSnapshot
 type ConsumerSnapshot = core.ConsumerSnapshot
 type StoredMessageSnapshot = core.StoredMessageSnapshot
 
-func DefaultConfig(deviceID string) Config {
-	return core.DefaultConfig(deviceID)
+func DefaultConfig() Config {
+	return core.DefaultConfig()
 }
 
-func DeviceUpload(ctx context.Context, cfg Config, payload []byte) (*MQTTPublishResult, error) {
-	return core.DeviceUpload(ctx, cfg, payload)
+func DeviceUpload(ctx context.Context, cfg Config, deviceID string, payload []byte) (*MQTTPublishResult, error) {
+	return core.DeviceUpload(ctx, cfg, deviceID, payload)
 }
 
-func DeviceReceiveCommands(ctx context.Context, cfg Config, handler func(MQTTCommand) error) error {
-	return core.DeviceReceiveCommands(ctx, cfg, handler)
+func DeviceReceiveCommands(ctx context.Context, cfg Config, deviceID string, handler func(MQTTCommand) error) error {
+	return core.DeviceReceiveCommands(ctx, cfg, deviceID, handler)
 }
 
 func PlatformReceiveUploads(ctx context.Context, cfg Config, handler func(NATSUpload) error) error {
@@ -47,8 +47,8 @@ func PlatformReceiveLiveUploads(ctx context.Context, cfg Config, handler func(NA
 	return core.PlatformReceiveLiveUploads(ctx, cfg, handler)
 }
 
-func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
-	return core.PlatformSendCommand(ctx, cfg, payload)
+func PlatformSendCommand(ctx context.Context, cfg Config, deviceID string, payload []byte) (*NATSPublishResult, error) {
+	return core.PlatformSendCommand(ctx, cfg, deviceID, payload)
 }
 
 func DiagnoseMQTTStream(ctx context.Context, cfg Config, latest int) (*Diagnostic, error) {

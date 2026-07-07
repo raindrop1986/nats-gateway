@@ -146,14 +146,14 @@ func PlatformReceiveLiveUploads(ctx context.Context, cfg Config, handler func(NA
 }
 
 // PlatformSendCommand publishes a platform command into the MQTT gateway stream
-// so a persistent MQTT session can receive it after reconnecting.
-func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATSPublishResult, error) {
-	cfg = cfg.withDefaults()
-	if err := cfg.validateNATS(); err != nil {
+// for deviceID so a persistent MQTT session can receive it after reconnecting.
+func PlatformSendCommand(ctx context.Context, cfg Config, deviceID string, payload []byte) (*NATSPublishResult, error) {
+	cfg, deviceID, err := cfg.withDevice(deviceID)
+	if err != nil {
 		return nil, err
 	}
-	if cfg.DeviceID == "" {
-		return nil, fmt.Errorf("device id is required")
+	if err := cfg.validateNATS(); err != nil {
+		return nil, err
 	}
 	if err := cfg.validateQoS(); err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func PlatformSendCommand(ctx context.Context, cfg Config, payload []byte) (*NATS
 		return nil, err
 	}
 
-	commandTopic := cfg.CommandTopic()
+	commandTopic := cfg.CommandTopic(deviceID)
 	natsSubject, err := mqttTopicToNATSSubject(commandTopic)
 	if err != nil {
 		return nil, err
